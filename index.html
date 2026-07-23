@@ -325,6 +325,7 @@
   var container = document.getElementById('container');
   var bgImage = document.getElementById('bgImage');
   var activeHotspot = null;
+  console.log("hotspot v3");
 
   function positionCard(hotspotEl, cardEl) {
     var cr = container.getBoundingClientRect();
@@ -404,8 +405,14 @@
     if (e.key === 'Escape') qrOverlay.classList.remove('open');
   });
 
-  bgImage.addEventListener('load', createHotspots);
-  if (bgImage.complete) createHotspots();
+  function initHotspots() {
+    createHotspots();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHotspots);
+  } else {
+    initHotspots();
+  }
 })();
 </script>
 </body>
