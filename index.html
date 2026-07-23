@@ -61,8 +61,7 @@
     background: #3b82f6;
   }
 
-  .hotspot:hover .hotspot-marker,
-  .hotspot.active .hotspot-marker {
+  .hotspot:hover .hotspot-marker {
     transform: scale(1.25);
     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.25);
   }
@@ -113,30 +112,18 @@
     transform: translateX(0);
   }
 
-  .hotspot:hover .hotspot-card,
-  .hotspot.active .hotspot-card {
+  .hotspot:hover .hotspot-card {
     opacity: 1;
     pointer-events: auto;
     transform: translateX(-50%);
   }
 
-  .hotspot:hover .hotspot-card.flip-left,
-  .hotspot.active .hotspot-card.flip-left {
+  .hotspot:hover .hotspot-card.flip-left {
     transform: translateX(0);
   }
 
-  .hotspot:hover .hotspot-card.flip-right,
-  .hotspot.active .hotspot-card.flip-right {
+  .hotspot:hover .hotspot-card.flip-right {
     transform: translateX(0);
-  }
-
-  .hotspot-card .card-thumb {
-    width: 100%;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    background: #f1f5f9;
   }
 
   .hotspot-card h3 {
@@ -314,7 +301,6 @@
 </div>
 
 <script>
-(function() {
   var hotspots = [
     { id: 1, x: 25, y: 30, title: '数据中心 A', desc: '核心计算节点，承载 80% 的业务流量，具备双活容灾能力。', tag: '基础设施' },
     { id: 2, x: 70, y: 22, title: '边缘节点 B', desc: '靠近用户侧的边缘计算集群，延迟低于 5ms，服务华东区域。', tag: '边缘计算' },
@@ -324,19 +310,6 @@
 
   var container = document.getElementById('container');
   var bgImage = document.getElementById('bgImage');
-  var activeHotspot = null;
-  console.log("hotspot v3");
-
-  function positionCard(hotspotEl, cardEl) {
-    var cr = container.getBoundingClientRect();
-    var hr = hotspotEl.getBoundingClientRect();
-    var cx = hr.left + hr.width / 2 - cr.left;
-    var cy = hr.top + hr.height / 2 - cr.top;
-    cardEl.classList.remove('flip-top', 'flip-left', 'flip-right');
-    if (cy - 180 < 0) cardEl.classList.add('flip-top');
-    if (cx + 130 > cr.width) cardEl.classList.add('flip-left');
-    else if (cx - 130 < 0) cardEl.classList.add('flip-right');
-  }
 
   function createHotspots() {
     hotspots.forEach(function(h) {
@@ -356,64 +329,31 @@
       el.appendChild(card);
 
       el.addEventListener('mouseenter', function() {
-        positionCard(el, card);
-      });
-
-      el.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (activeHotspot === el) {
-          el.classList.remove('active');
-          activeHotspot = null;
-        } else {
-          if (activeHotspot) activeHotspot.classList.remove('active');
-          positionCard(el, card);
-          el.classList.add('active');
-          activeHotspot = el;
-        }
+        var cr = container.getBoundingClientRect();
+        var hr = el.getBoundingClientRect();
+        var cx = hr.left + hr.width / 2 - cr.left;
+        var cy = hr.top + hr.height / 2 - cr.top;
+        card.classList.remove('flip-top', 'flip-left', 'flip-right');
+        if (cy - 180 < 0) card.classList.add('flip-top');
+        if (cx + 130 > cr.width) card.classList.add('flip-left');
+        else if (cx - 130 < 0) card.classList.add('flip-right');
       });
 
       container.appendChild(el);
     });
   }
 
-  document.addEventListener('click', function(e) {
-    if (activeHotspot && !e.target.closest('.hotspot') && !e.target.closest('.qr-toggle') && !e.target.closest('.qr-overlay')) {
-      activeHotspot.classList.remove('active');
-      activeHotspot = null;
-    }
-  });
+  bgImage.addEventListener('load', createHotspots);
+  if (bgImage.complete) createHotspots();
 
-  // QR code panel
   var qrToggle = document.getElementById('qrToggle');
   var qrOverlay = document.getElementById('qrOverlay');
   var qrClose = document.getElementById('qrClose');
 
-  qrToggle.addEventListener('click', function(e) {
-    e.stopPropagation();
-    qrOverlay.classList.add('open');
-  });
-
-  qrClose.addEventListener('click', function() {
-    qrOverlay.classList.remove('open');
-  });
-
-  qrOverlay.addEventListener('click', function(e) {
-    if (e.target === qrOverlay) qrOverlay.classList.remove('open');
-  });
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') qrOverlay.classList.remove('open');
-  });
-
-  function initHotspots() {
-    createHotspots();
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initHotspots);
-  } else {
-    initHotspots();
-  }
-})();
+  qrToggle.addEventListener('click', function() { qrOverlay.classList.add('open'); });
+  qrClose.addEventListener('click', function() { qrOverlay.classList.remove('open'); });
+  qrOverlay.addEventListener('click', function(e) { if (e.target === qrOverlay) qrOverlay.classList.remove('open'); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') qrOverlay.classList.remove('open'); });
 </script>
 </body>
 </html>
