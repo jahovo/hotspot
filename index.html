@@ -33,7 +33,6 @@
     height: auto;
   }
 
-  /* 热点标记 */
   .hotspot {
     position: absolute;
     z-index: 10;
@@ -62,7 +61,8 @@
     background: #3b82f6;
   }
 
-  .hotspot:hover .hotspot-marker {
+  .hotspot:hover .hotspot-marker,
+  .hotspot.active .hotspot-marker {
     transform: scale(1.25);
     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.25);
   }
@@ -81,7 +81,6 @@
     100% { transform: scale(1.8); opacity: 0; }
   }
 
-  /* 信息卡片 */
   .hotspot-card {
     position: absolute;
     bottom: calc(100% + 16px);
@@ -114,17 +113,20 @@
     transform: translateX(0);
   }
 
-  .hotspot:hover .hotspot-card {
+  .hotspot:hover .hotspot-card,
+  .hotspot.active .hotspot-card {
     opacity: 1;
     pointer-events: auto;
     transform: translateX(-50%);
   }
 
-  .hotspot:hover .hotspot-card.flip-left {
+  .hotspot:hover .hotspot-card.flip-left,
+  .hotspot.active .hotspot-card.flip-left {
     transform: translateX(0);
   }
 
-  .hotspot:hover .hotspot-card.flip-right {
+  .hotspot:hover .hotspot-card.flip-right,
+  .hotspot.active .hotspot-card.flip-right {
     transform: translateX(0);
   }
 
@@ -178,7 +180,6 @@
     border-bottom-color: #ffffff;
   }
 
-  /* 二维码按�?*/
   .qr-toggle {
     position: fixed;
     bottom: 24px;
@@ -212,7 +213,6 @@
     stroke-linejoin: round;
   }
 
-  /* 二维码弹�?*/
   .qr-overlay {
     position: fixed;
     inset: 0;
@@ -289,10 +289,9 @@
 </head>
 <body>
 <div class="container" id="container">
-  <img src="background.jpg" alt="背景�? id="bgImage">
+  <img src="background.jpg" alt="背景图" id="bgImage">
 </div>
 
-<!-- 二维码按�?-->
 <button class="qr-toggle" id="qrToggle" title="扫码在手机上查看">
   <svg viewBox="0 0 24 24">
     <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -304,134 +303,110 @@
   </svg>
 </button>
 
-<!-- 二维码弹�?-->
 <div class="qr-overlay" id="qrOverlay">
   <div class="qr-panel">
     <h2>扫码查看</h2>
     <p class="qr-subtitle">使用手机扫描二维码打开页面</p>
-    <img class="qr-img" id="qrImage" src="qr.svg" alt="QR Code">
-    <div class="qr-url" id="qrUrl"></div>
+    <img class="qr-img" src="qr.svg" alt="QR Code">
+    <div class="qr-url" id="qrUrl">https://jahovo.github.io/hotspot/</div>
     <button class="qr-close" id="qrClose">关闭</button>
   </div>
 </div>
 
 <script>
-  const hotspots = [
-    {
-      id: 1,
-      x: 25, y: 30,
-      title: '数据中心 A',
-      desc: '核心计算节点，承�?80% 的业务流量，具备双活容灾能力�?,
-      tag: '基础设施',
-      thumb: ''
-    },
-    {
-      id: 2,
-      x: 70, y: 22,
-      title: '边缘节点 B',
-      desc: '靠近用户侧的边缘计算集群，延迟低�?5ms，服务华东区域�?,
-      tag: '边缘计算',
-      thumb: ''
-    },
-    {
-      id: 3,
-      x: 20, y: 72,
-      title: '存储区域 C',
-      desc: '分布式对象存储，总量 2.4PB，支持冷热数据分层与自动归档�?,
-      tag: '存储',
-      thumb: ''
-    },
-    {
-      id: 4,
-      x: 75, y: 68,
-      title: '网关集群 D',
-      desc: '统一流量入口，日均处�?12 亿次请求，集�?WAF 与限流策略�?,
-      tag: '网络',
-      thumb: ''
-    }
+(function() {
+  var hotspots = [
+    { id: 1, x: 25, y: 30, title: '数据中心 A', desc: '核心计算节点，承载 80% 的业务流量，具备双活容灾能力。', tag: '基础设施' },
+    { id: 2, x: 70, y: 22, title: '边缘节点 B', desc: '靠近用户侧的边缘计算集群，延迟低于 5ms，服务华东区域。', tag: '边缘计算' },
+    { id: 3, x: 20, y: 72, title: '存储区域 C', desc: '分布式对象存储，总量 2.4PB，支持冷热数据分层与自动归档。', tag: '存储' },
+    { id: 4, x: 75, y: 68, title: '网关集群 D', desc: '统一流量入口，日均处理 12 亿次请求，集成 WAF 与限流策略。', tag: '网络' }
   ];
 
-  // ---- 创建热点 ----
-  const container = document.getElementById('container');
-  const bgImage = document.getElementById('bgImage');
+  var container = document.getElementById('container');
+  var bgImage = document.getElementById('bgImage');
+  var activeHotspot = null;
+
+  function positionCard(hotspotEl, cardEl) {
+    var cr = container.getBoundingClientRect();
+    var hr = hotspotEl.getBoundingClientRect();
+    var cx = hr.left + hr.width / 2 - cr.left;
+    var cy = hr.top + hr.height / 2 - cr.top;
+    cardEl.classList.remove('flip-top', 'flip-left', 'flip-right');
+    if (cy - 180 < 0) cardEl.classList.add('flip-top');
+    if (cx + 130 > cr.width) cardEl.classList.add('flip-left');
+    else if (cx - 130 < 0) cardEl.classList.add('flip-right');
+  }
 
   function createHotspots() {
-    hotspots.forEach(h => {
-      const el = document.createElement('div');
+    hotspots.forEach(function(h) {
+      var el = document.createElement('div');
       el.className = 'hotspot';
       el.style.left = h.x + '%';
       el.style.top = h.y + '%';
       el.style.transform = 'translate(-50%, -50%)';
 
-      const marker = document.createElement('div');
+      var marker = document.createElement('div');
       marker.className = 'hotspot-marker';
       el.appendChild(marker);
 
-      const card = document.createElement('div');
+      var card = document.createElement('div');
       card.className = 'hotspot-card';
-      card.innerHTML = [
-        h.thumb ? '<img class="card-thumb" src="' + h.thumb + '" alt="">' : '',
-        '<h3>' + h.title + '</h3>',
-        '<p>' + h.desc + '</p>',
-        '<span class="card-tag">' + h.tag + '</span>'
-      ].join('');
+      card.innerHTML = '<h3>' + h.title + '</h3><p>' + h.desc + '</p><span class="card-tag">' + h.tag + '</span>';
       el.appendChild(card);
 
-      function positionCard() {
-        const containerRect = container.getBoundingClientRect();
-        const hotspotRect = el.getBoundingClientRect();
-        const cardW = 260;
-        const cardH = 160;
-        const cx = hotspotRect.left + hotspotRect.width / 2 - containerRect.left;
-        const cy = hotspotRect.top + hotspotRect.height / 2 - containerRect.top;
-        card.classList.remove('flip-top', 'flip-left', 'flip-right');
-        if (cy - cardH - 20 < 0) card.classList.add('flip-top');
-        const hc = cardW / 2;
-        if (cx + hc > containerRect.width) card.classList.add('flip-left');
-        else if (cx - hc < 0) card.classList.add('flip-right');
-      }
+      el.addEventListener('mouseenter', function() {
+        positionCard(el, card);
+      });
 
-      el.addEventListener('mouseenter', positionCard);
       el.addEventListener('click', function(e) {
         e.stopPropagation();
-        positionCard();
-        var wasOpen = card.classList.contains('visible');
-        document.querySelectorAll('.hotspot-card.visible').forEach(function(c) { c.classList.remove('visible'); });
-        if (!wasOpen) card.classList.add('visible');
+        if (activeHotspot === el) {
+          el.classList.remove('active');
+          activeHotspot = null;
+        } else {
+          if (activeHotspot) activeHotspot.classList.remove('active');
+          positionCard(el, card);
+          el.classList.add('active');
+          activeHotspot = el;
+        }
       });
 
       container.appendChild(el);
     });
   }
 
-  // ---- 二维码弹�?----
-  const qrToggle = document.getElementById('qrToggle');
-  const qrOverlay = document.getElementById('qrOverlay');
-  const qrClose = document.getElementById('qrClose');
-  const qrUrl = document.getElementById('qrUrl');
+  document.addEventListener('click', function(e) {
+    if (activeHotspot && !e.target.closest('.hotspot') && !e.target.closest('.qr-toggle') && !e.target.closest('.qr-overlay')) {
+      activeHotspot.classList.remove('active');
+      activeHotspot = null;
+    }
+  });
 
-  qrUrl.textContent = 'https://jahovo.github.io/hotspot/';
+  // QR code panel
+  var qrToggle = document.getElementById('qrToggle');
+  var qrOverlay = document.getElementById('qrOverlay');
+  var qrClose = document.getElementById('qrClose');
 
-  qrToggle.addEventListener('click', () => {
+  qrToggle.addEventListener('click', function(e) {
+    e.stopPropagation();
     qrOverlay.classList.add('open');
   });
 
-  qrClose.addEventListener('click', () => {
+  qrClose.addEventListener('click', function() {
     qrOverlay.classList.remove('open');
   });
 
-  qrOverlay.addEventListener('click', (e) => {
+  qrOverlay.addEventListener('click', function(e) {
     if (e.target === qrOverlay) qrOverlay.classList.remove('open');
   });
 
-  document.addEventListener('click', function() { document.querySelectorAll('.hotspot-card.visible').forEach(function(c) { c.classList.remove('visible'); }); });
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') qrOverlay.classList.remove('open');
   });
 
-  // ---- 启动 ----
   bgImage.addEventListener('load', createHotspots);
   if (bgImage.complete) createHotspots();
+})();
 </script>
 </body>
 </html>
